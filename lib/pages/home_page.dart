@@ -11,7 +11,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int index = 0;
-  List<Widget> listaPages = [const NuevoPage(), const HistorialPage()];
+  final List<Widget> listaPages = [const NuevoPage(), const HistorialPage()];
 
   @override
   Widget build(BuildContext context) {
@@ -36,9 +36,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(label: 'Nuevo', icon: Icon(Icons.home)),
           BottomNavigationBarItem(label: 'Historial', icon: Icon(Icons.save)),
         ],
-        onTap: (value) => setState(() {
-          index = value;
-        }),
+        onTap: (value) => setState(() => index = value),
       ),
     );
   }

@@ -2,7 +2,7 @@ import 'package:lista_app/model/articulo.dart';
 import 'package:lista_app/model/db_helper.dart';
 
 class ArticuloDao {
-  Future<void> insertArticulo(Articulo articulo) async {
+  Future<void> insertarArticulo(Articulo articulo) async {
     final db = await DBHelper.instance.database;
     await db.insert(DBHelper.databaseTable1, articulo.toMap());
   }
@@ -34,12 +34,12 @@ class ArticuloDao {
   Future<int> lastCodArticulo() async {
     int codigo = 0;
     final db = await DBHelper.instance.database;
-    String sql =
-        'SELECT cod_art FROM ${DBHelper.databaseTable1} ODER BY cod_art DESC LIMIT 1';
-    // final List<Map<String, Object?>> queryResult = await db.query(sql, columns: ['cod_art'], orderBy: 'cod_art', limit: 1);
-    final List<Map<String, Object?>> queryResult = await db.rawQuery(sql);
-    final codArticulo = queryResult.first;
-    codArticulo.forEach((key, value) {
+    final List<Map<String, Object?>> queryResult = await db.query(
+        DBHelper.databaseTable1,
+        columns: ['cod_art'],
+        orderBy: 'cod_art DESC',
+        limit: 1);
+    queryResult.first.forEach((key, value) {
       codigo = value as int;
     });
     return codigo;

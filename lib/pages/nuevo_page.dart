@@ -1,8 +1,14 @@
-import 'package:dropdown_button2/dropdown_button2.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:lista_app/model/articulo.dart';
+import 'package:lista_app/model/lista.dart';
 import 'package:lista_app/services/articulo_dao.dart';
+import 'package:lista_app/services/detalle_dao.dart';
+import 'package:lista_app/services/lista_dao.dart';
+import 'package:lista_app/widgets/background_dismissible.dart';
+import 'package:lista_app/widgets/build_listview.dart';
+import 'package:lista_app/widgets/dropdown_unidad.dart';
+import 'package:lista_app/widgets/inputs_form.dart';
 import 'package:money_input_formatter/money_input_formatter.dart';
 
 class NuevoPage extends StatefulWidget {
@@ -13,18 +19,22 @@ class NuevoPage extends StatefulWidget {
 }
 
 class _NuevoPageState extends State<NuevoPage> {
-  TextEditingController tituloController = TextEditingController();
-  TextEditingController nombreController = TextEditingController();
-  TextEditingController precioController = TextEditingController();
-  TextEditingController cantidadController = TextEditingController();
-  GlobalKey<FormState> formListaKey = GlobalKey<FormState>();
-  GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formListaKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
   GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
-  List<Articulo> listaArticulo = <Articulo>[];
-  String? itemUnidad;
+  final TextEditingController tituloController = TextEditingController();
+  final TextEditingController nombreController = TextEditingController();
+  final TextEditingController precioController = TextEditingController();
+  final TextEditingController cantidadController = TextEditingController();
+  DropdownUnidad dropdownUnidad = DropdownUnidad(itemUnidad: null);
+  List<Articulo> listaArticulos = <Articulo>[];
+  late double monto;
   bool visibleValidacion = false;
-  bool visibleTotal = false;
-  ArticuloDao articuloDao = ArticuloDao();
+  final ArticuloDao articuloDao = ArticuloDao();
+  final ListaDao listaDao = ListaDao();
+  final DetalleDao detalleDao = DetalleDao();
+  bool actualizar = false;
+  late int position;
 
   @override
   Widget build(BuildContext context) {
@@ -34,16 +44,18 @@ class _NuevoPageState extends State<NuevoPage> {
           key: formListaKey,
           child: Row(
             children: [
-              inputForm(
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                  tituloController,
-                  TextInputType.text,
-                  'Título',
-                  'Ingrese título.', [])
+              InputsForm(
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                  inputController: tituloController,
+                  inputType: TextInputType.text,
+                  hint: 'Título',
+                  validator: 'Ingrese título.',
+                  inputFormatters: const []),
             ],
           ),
         ),
-        titulo(),
+        textLabel('Nuevo Artículo', 22, Colors.white),
         Form(
           key: formArticuloKey,
           child: Column(
@@ -52,152 +64,86 @@ class _NuevoPageState extends State<NuevoPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  inputForm(
-                      const EdgeInsets.only(left: 8, top: 12, right: 5),
-                      nombreController,
-                      TextInputType.name,
-                      'Nombre',
-                      'Ingrese nombre.', []),
-                  inputForm(
-                      const EdgeInsets.only(left: 5, top: 12, right: 8),
-                      precioController,
-                      TextInputType.number,
-                      'Precio',
-                      'Ingrese precio.',
-                      [MoneyInputFormatter()]),
+                  InputsForm(
+                      margin: const EdgeInsets.only(left: 8, top: 12, right: 5),
+                      inputController: nombreController,
+                      inputType: TextInputType.name,
+                      hint: 'Nombre',
+                      validator: 'Ingrese nombre.',
+                      inputFormatters: const []),
+                  InputsForm(
+                    margin: const EdgeInsets.only(left: 5, top: 12, right: 8),
+                    inputController: precioController,
+                    inputType: TextInputType.number,
+                    hint: 'Precio',
+                    validator: 'Ingrese precio.',
+                    inputFormatters: [
+                      MoneyInputFormatter(thousandSeparator: ''),
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                  ),
                 ],
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  inputForm(
-                      const EdgeInsets.only(left: 8, top: 10, right: 5),
-                      cantidadController,
-                      TextInputType.number,
-                      'Cantidad',
-                      'Ingrese cantidad.', []),
-                  dropDownUnidad(),
+                  InputsForm(
+                      margin: const EdgeInsets.only(left: 8, top: 10, right: 5),
+                      inputController: cantidadController,
+                      inputType: TextInputType.number,
+                      hint: 'Cantidad',
+                      validator: 'Ingrese cantidad.',
+                      inputFormatters: [LengthLimitingTextInputFormatter(3)]),
+                  dropdownUnidad
                 ],
               ),
+              visibleValidacion ? validarLista() : const SizedBox(),
+              actualizar ? buttonActualizar() : buttonAgregar(),
             ],
           ),
         ),
-        visibleValidacion ? validarLista() : Container(),
-        buttonAgregar(),
-        Expanded(child: listaArticulos()),
-        visibleTotal ? total() : Container(),
+        Expanded(child: listarArticulos()),
+        listaArticulos.isNotEmpty ? total() : const SizedBox(),
         buttonGuardar(),
       ],
     );
   }
 
-  Widget inputForm(
-      EdgeInsetsGeometry margin,
-      TextEditingController inputController,
-      TextInputType inputType,
-      String hint,
-      String validator,
-      List<TextInputFormatter> inputFormatters) {
-    return Flexible(
-      child: Container(
-        margin: margin,
-        child: TextFormField(
-          controller: inputController,
-          keyboardType: inputType,
-          inputFormatters: inputFormatters,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: const Color(0xFF2B2A57),
-            hintText: hint,
-            hintStyle: const TextStyle(color: Colors.grey),
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-            isDense: true,
-          ),
-          validator: (value) => value!.isEmpty ? validator : null,
-        ),
-      ),
-    );
-  }
-
-  Widget titulo() {
-    return const Text(
-      "Nuevo Artículo",
-      style: TextStyle(
-        fontSize: 22,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-      ),
-    );
-  }
-
-  Widget dropDownUnidad() {
-    const List<String> list = <String>['Un', 'Tira', 'Kg', 'Doc', 'Pack'];
-
-    return Flexible(
-      child: Container(
-        margin: const EdgeInsets.only(left: 5, top: 10, right: 8),
-        child: DropdownButtonFormField2<String>(
-          value: itemUnidad,
-          style: const TextStyle(color: Colors.white),
-          dropdownMaxHeight: 155,
-          isDense: true,
-          itemHeight: 45,
-          itemPadding: const EdgeInsets.only(left: 15),
-          buttonPadding: const EdgeInsets.only(left: 6, right: 10),
-          scrollbarRadius: const Radius.circular(40),
-          scrollbarAlwaysShow: true,
-          offset: const Offset(0, -14),
-          hint: const Text(
-            'Unidad',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
-          dropdownDecoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            color: const Color(0xFF2B2A57),
-          ),
-          items: list
-              .map((e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e, style: const TextStyle(fontSize: 16))))
-              .toList(),
-          onChanged: (value) => setState(() {
-            itemUnidad = value.toString();
-          }),
-          decoration: InputDecoration(
-            isDense: true,
-            filled: true,
-            fillColor: const Color(0xFF2B2A57),
-            contentPadding: const EdgeInsets.symmetric(vertical: 7.8),
-            border: OutlineInputBorder(
-              borderSide: BorderSide.none,
-              borderRadius: BorderRadius.circular(5),
-            ),
-          ),
-          validator: (value) =>
-              identical(value, null) ? 'Seleccione  cantidad.' : null,
-        ),
-      ),
+  Widget textLabel(String texto, double? size, Color color) {
+    return Text(
+      texto,
+      style:
+          TextStyle(fontSize: size, fontWeight: FontWeight.w700, color: color),
     );
   }
 
   Widget buttonAgregar() {
     return Container(
       width: 110,
-      margin: const EdgeInsets.symmetric(vertical: 6),
+      margin: const EdgeInsets.symmetric(vertical: 5),
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF2554B8),
+            backgroundColor: Colors.green,
             shape: const StadiumBorder(),
             elevation: 5),
-        onPressed: () => submitArticulo(),
+        onPressed: () => setState(() => submitAgregar()),
         child: const Text('AGREGAR'),
+      ),
+    );
+  }
+
+  Widget buttonActualizar() {
+    return Container(
+      width: 120,
+      margin: const EdgeInsets.symmetric(vertical: 5),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.indigo,
+            shape: const StadiumBorder(),
+            elevation: 5),
+        onPressed: () => setState(() => submitActualizar()),
+        child: const Text('ACTUALIZAR'),
       ),
     );
   }
@@ -211,153 +157,156 @@ class _NuevoPageState extends State<NuevoPage> {
             backgroundColor: const Color(0xFF1697B4),
             shape: const StadiumBorder(),
             elevation: 5),
-        onPressed: () => setState(() {
-          submitLista();
-        }),
+        onPressed: () => setState(() => submitGuardar()),
         child: const Text('GUARDAR'),
       ),
     );
   }
 
-  void submitArticulo() {
+  void submitAgregar() {
     if (formArticuloKey.currentState!.validate()) {
-      visibleTotal = true;
+      visibleValidacion = false;
       Articulo articulo = Articulo(
         nombre: nombreController.text,
         precio: double.parse(precioController.text),
         cantidad: int.parse(cantidadController.text),
-        unidad: itemUnidad!,
+        unidad: dropdownUnidad.itemUnidad!,
       );
-      listaArticulo.add(articulo);
-      listaKey.currentState!.insertItem(listaArticulo.length - 1);
+      listaArticulos.add(articulo);
+      listaKey.currentState!.insertItem(listaArticulos.length - 1);
+      FocusScope.of(context).unfocus();
+      //limpiarTexto();
     }
   }
 
-  void submitLista() {
+  void submitActualizar() {
+    if (formArticuloKey.currentState!.validate()) {
+      actualizar = false;
+      listaArticulos.elementAt(position).nombre = nombreController.text;
+      listaArticulos.elementAt(position).precio =
+          double.parse(precioController.text);
+      listaArticulos.elementAt(position).cantidad =
+          int.parse(cantidadController.text);
+      listaArticulos.elementAt(position).unidad = dropdownUnidad.itemUnidad!;
+      listaKey.currentState!
+          .removeItem(position, (context, animation) => const SizedBox());
+      listaKey.currentState!.insertItem(position);
+      FocusScope.of(context).unfocus();
+      //limpiarTexto();
+    }
+  }
+
+  void submitGuardar() {
+    List<int> codArticulo = <int>[];
     if (formListaKey.currentState!.validate()) {
-      if (listaArticulo.isEmpty) {
-        visibleValidacion = true;
-      } else {
+      if (listaArticulos.isNotEmpty) {
         visibleValidacion = false;
-        for (var element in listaArticulo) {
-          articuloDao.insertArticulo(element);
+        actualizar = false;
+        for (var element in listaArticulos) {
+          articuloDao.insertarArticulo(element);
+          articuloDao.lastCodArticulo().then((value) => codArticulo.add(value));
         }
+        Lista lista = Lista(
+            titulo: tituloController.text,
+            cantidad: listaArticulos.length,
+            total: monto,
+            estado: 0);
+        listaDao.insertarLista(lista);
+        listaDao
+            .lastCodLista()
+            .then((value) => detalleDao.insertDetalle(value, codArticulo));
+        tituloController.text = '';
+        listaArticulos.clear();
+        listaKey = GlobalKey<AnimatedListState>();
+        limpiarTexto();
+        FocusScope.of(context).unfocus();
+      } else {
+        visibleValidacion = true;
       }
     }
   }
 
+  void limpiarTexto() {
+    nombreController.text = '';
+    precioController.text = '';
+    cantidadController.text = '';
+    dropdownUnidad = DropdownUnidad(itemUnidad: null);
+  }
+
   Widget validarLista() {
-    return Visibility(
-      visible: visibleValidacion,
-      child: Padding(
-        padding: const EdgeInsets.only(top: 10),
-        child: Text(
-          'Agregar artículos.',
-          style: TextStyle(color: Colors.red[600], fontSize: 12),
-        ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: Text(
+        'Agregar artículos.',
+        style: TextStyle(color: Colors.red[600], fontSize: 12),
       ),
     );
   }
 
   Widget total() {
-    double monto = 0;
-    for (var element in listaArticulo) {
+    monto = 0;
+    for (var element in listaArticulos) {
       monto += element.precio * element.cantidad;
     }
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 5, top: 9),
-      child: Text(
-        'TOTAL: S/ $monto',
-        style: const TextStyle(
-            color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-      ),
+      child: textLabel('TOTAL: S/ $monto', 16, Colors.white),
     );
   }
 
-  Widget listaArticulos() {
+  Widget listarArticulos() {
     return AnimatedList(
       key: listaKey,
-      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
-      initialItemCount: listaArticulo.length,
-      itemBuilder: (context, index, animation) =>
-          contenidoLista(index, animation),
-    );
-  }
-
-  Widget contenidoLista(int index, Animation<double> animation) {
-    return SizeTransition(
-      sizeFactor: animation,
-      child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-        elevation: 2,
-        color: const Color(0xFF397BFF),
-        child: dismissible(index),
-      ),
+      shrinkWrap: true,
+      initialItemCount: listaArticulos.length,
+      padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
+      itemBuilder: (context, index, animation) => BuildLista(
+          onTap: false, animation: animation, widget: dismissible(index)),
     );
   }
 
   Widget dismissible(int index) {
-    String nombre = listaArticulo.elementAt(index).nombre;
-    double precio = listaArticulo.elementAt(index).precio;
-    int cantidad = listaArticulo.elementAt(index).cantidad;
-    String unidad = listaArticulo.elementAt(index).unidad;
+    String nombre = listaArticulos.elementAt(index).nombre;
+    double precio = listaArticulos.elementAt(index).precio;
+    int cantidad = listaArticulos.elementAt(index).cantidad;
+    String unidad = listaArticulos.elementAt(index).unidad;
     Articulo itemBorrado;
 
     return Dismissible(
       key: UniqueKey(),
-      background: Container(
-        padding: const EdgeInsets.only(left: 15),
-        alignment: Alignment.centerLeft,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(13),
-          color: const Color(0xFF07AA5E),
-        ),
-        child: const Text(
-          'EDITAR',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-      ),
-      secondaryBackground: Container(
-        padding: const EdgeInsets.only(right: 15),
-        alignment: Alignment.centerRight,
-        decoration: BoxDecoration(
-          //image: DecorationImage(image: image),
-          borderRadius: BorderRadius.circular(13),
-          color: Colors.red,
-        ),
-        child: const Text(
-          'ELIMINAR',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
-        ),
-      ),
+      resizeDuration: const Duration(microseconds: 1),
+      background: BackgroundDismissible(
+          Colors.greenAccent.shade700, Alignment.centerLeft, 'EDITAR'),
+      secondaryBackground: const BackgroundDismissible(
+          Colors.red, Alignment.centerRight, 'ELIMINAR'),
       onDismissed: (direction) => setState(() {
         if (direction == DismissDirection.endToStart) {
-          itemBorrado = listaArticulo.elementAt(index);
-          listaArticulo.removeAt(index);
+          actualizar = false;
+          itemBorrado = listaArticulos.elementAt(index);
+          listaArticulos.removeAt(index);
           listaKey.currentState!.removeItem(
             index,
-            (context, animation) {
-              return contenidoLista(index, animation);
-            },
+            (context, animation) => listaArticulos.isNotEmpty
+                ? BuildLista(
+                    onTap: false,
+                    animation: animation,
+                    widget: dismissible(0),
+                  )
+                : Container(),
           );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(itemBorrado.nombre),
-              action: SnackBarAction(
-                label: 'Deshacer',
-                onPressed: () => setState(() {
-                  listaArticulo.insert(index, itemBorrado);
-                  listaKey.currentState!.insertItem(index);
-                }),
-              ),
-            ),
-          );
+          showSnackBar(itemBorrado, index);
+          FocusScope.of(context).unfocus();
         } else {
+          position = index;
+          actualizar = true;
           nombreController.text = nombre;
           precioController.text = precio.toString();
           cantidadController.text = cantidad.toString();
-          itemUnidad = unidad;
+          dropdownUnidad = DropdownUnidad(itemUnidad: unidad);
+          listaKey.currentState!
+              .removeItem(index, (context, animation) => const SizedBox());
+          listaKey.currentState!.insertItem(index);
         }
       }),
       child: Container(
@@ -368,31 +317,29 @@ class _NuevoPageState extends State<NuevoPage> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '$cantidad $unidad $nombre',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, color: Colors.white),
-                ),
-                const SizedBox(
-                  height: 6,
-                ),
-                Text(
-                  'S/ $precio',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w500, color: Colors.greenAccent),
-                ),
+                textLabel('$cantidad $unidad $nombre', null, Colors.white),
+                const SizedBox(height: 3),
+                textLabel('S/ $precio', null, Colors.greenAccent),
               ],
             ),
-            Column(
-              children: [
-                Text(
-                  'S/ ${precio * cantidad}',
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w600, color: Colors.white),
-                )
-              ],
-            )
+            textLabel('S/ ${precio * cantidad}', null, Colors.greenAccent),
           ],
+        ),
+      ),
+    );
+  }
+
+  void showSnackBar(Articulo itemBorrado, int index) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(itemBorrado.nombre),
+        duration: const Duration(seconds: 3),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () => setState(() {
+            listaArticulos.insert(index, itemBorrado);
+            listaKey.currentState!.insertItem(index);
+          }),
         ),
       ),
     );

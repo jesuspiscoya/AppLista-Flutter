@@ -19,7 +19,7 @@ class Lista {
         total = item['total'],
         estado = item['estado'];
 
-  Map<String, dynamic> toMap() {
+  Map<String, Object?> toMap() {
     return {
       'cod_list': codigo,
       'titulo': titulo,

@@ -1,9 +1,9 @@
 class Articulo {
   final int? codigo;
-  final String nombre;
-  final double precio;
-  final int cantidad;
-  final String unidad;
+  String nombre;
+  double precio;
+  int cantidad;
+  String unidad;
 
   Articulo(
       {this.codigo,
