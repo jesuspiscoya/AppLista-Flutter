@@ -1,23 +1,23 @@
+import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:lista_app/model/articulo.dart';
+import 'package:lista_app/model/detalle.dart';
 import 'package:lista_app/model/lista.dart';
-import 'package:lista_app/services/articulo_dao.dart';
 import 'package:lista_app/services/detalle_dao.dart';
 import 'package:lista_app/services/lista_dao.dart';
-import 'package:lista_app/widgets/background_dismissible.dart';
-import 'package:lista_app/widgets/build_listview.dart';
-import 'package:lista_app/widgets/dropdown_unidad.dart';
-import 'package:lista_app/widgets/inputs_form.dart';
-import 'package:money_input_formatter/money_input_formatter.dart';
+import 'package:lista_app/widgets/button_cantidad.dart';
+import 'package:lista_app/widgets/dismissible_background.dart';
+import 'package:lista_app/widgets/dropdown_build.dart';
+import 'package:lista_app/widgets/listview_build.dart';
 
 class AlertdialogLista extends StatefulWidget {
   final Lista lista;
-  final List<Articulo> listaArticulos;
+  final List<Map<Detalle, Articulo>> listaDetalle;
 
   const AlertdialogLista({
     super.key,
     required this.lista,
-    required this.listaArticulos,
+    required this.listaDetalle,
   });
 
   @override
@@ -27,161 +27,121 @@ class AlertdialogLista extends StatefulWidget {
 class _AlertdialogListaState extends State<AlertdialogLista> {
   final GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
   final GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
-  final TextEditingController nombreController = TextEditingController();
-  final TextEditingController precioController = TextEditingController();
-  final TextEditingController cantidadController = TextEditingController();
-  final ListaDao listaDao = ListaDao();
-  final ArticuloDao articuloDao = ArticuloDao();
-  final DetalleDao detalleDao = DetalleDao();
-  DropdownUnidad dropdownUnidad = DropdownUnidad(itemUnidad: null);
-  bool agregar = true, remove = false, actualizar = false;
-  int codArticulo = 0;
+  bool agregar = true, actualizar = false;
+  DropdownBuild dropdownArticulo =
+      DropdownBuild(search: true, flex: 6, width: 215, height: 390);
+  DropdownBuild dropdownUnidad =
+      DropdownBuild(search: false, flex: 3, width: 100, height: 195);
+  ButtonCantidad buttonCantidad = ButtonCantidad(cantidad: 1);
+  late Detalle detalle;
+  late Articulo articulo;
+  double height = 96;
   late int position;
-
-  @override
-  void initState() {
-    super.initState();
-    getLastCodigo();
-  }
-
-  void getLastCodigo() async {
-    final data = await articuloDao.lastCodArticulo();
-    setState(() {
-      codArticulo = data;
-    });
-  }
+  final ListaDao listaDao = ListaDao();
+  final DetalleDao detalleDao = DetalleDao();
 
   @override
   Widget build(BuildContext context) {
     return ScaffoldMessenger(
       child: Builder(
         builder: (context) => Scaffold(
-          backgroundColor: Colors.transparent,
-          body: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () {
-              Navigator.of(context).pop();
-              remove = false;
-              agregar = true;
-              actualizar = false;
-            },
+          backgroundColor: const Color(0x6E000000),
+          body: ZoomIn(
+            duration: const Duration(milliseconds: 200),
             child: GestureDetector(
-              onTap: () {},
-              child: StatefulBuilder(
-                builder: (context, setState) => AlertDialog(
-                  backgroundColor: const Color(0xFF17124A),
-                  shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.circular(15))),
-                  insetPadding: const EdgeInsets.all(20),
-                  title: Center(
-                      child: textLabel(widget.lista.titulo, 19, Colors.cyan)),
-                  titlePadding: const EdgeInsets.only(top: 12),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 6),
-                  content: SizedBox(
-                    width: MediaQuery.of(context).size.width,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        agregar
-                            ? MaterialButton(
-                                minWidth: 30,
-                                height: 30,
-                                color: const Color(0xFF07AA5E),
-                                shape: const CircleBorder(),
-                                child: const Icon(
-                                  Icons.add_circle_rounded,
-                                  size: 22,
-                                  color: Color(0xA0FFFFFF),
+              behavior: HitTestBehavior.opaque,
+              onTap: () => Navigator.of(context).pop(),
+              child: GestureDetector(
+                onTap: () {},
+                child: StatefulBuilder(
+                  builder: (context, setState) => AlertDialog(
+                    backgroundColor: const Color(0xFF151C4F),
+                    shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(15))),
+                    insetPadding: const EdgeInsets.symmetric(
+                        horizontal: 25, vertical: 85),
+                    title: Center(
+                        child: textLabel(widget.lista.titulo, 19, Colors.cyan)),
+                    titlePadding: const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: EdgeInsets.zero,
+                    content: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          agregar
+                              ? MaterialButton(
+                                  minWidth: 0,
+                                  padding: const EdgeInsets.all(4),
+                                  color: const Color(0xFF07AA5E),
+                                  shape: const CircleBorder(),
+                                  child: const Icon(
+                                    Icons.add_circle_rounded,
+                                    size: 22,
+                                    color: Color(0xA0FFFFFF),
+                                  ),
+                                  onPressed: () => setState(() {
+                                    agregar = false;
+                                    actualizar = false;
+                                  }),
+                                )
+                              : MaterialButton(
+                                  minWidth: 0,
+                                  padding: const EdgeInsets.all(4),
+                                  color: const Color(0xFFB51A1A),
+                                  shape: const CircleBorder(),
+                                  child: const Icon(
+                                    Icons.cancel_rounded,
+                                    size: 22,
+                                    color: Color(0xA0FFFFFF),
+                                  ),
+                                  onPressed: () =>
+                                      setState(() => limpiarForm()),
                                 ),
-                                onPressed: () => setState(() {
-                                  agregar = false;
-                                  remove = true;
-                                  actualizar = false;
-                                  limpiarTexto();
-                                }),
-                              )
-                            : const SizedBox(),
-                        remove
-                            ? MaterialButton(
-                                minWidth: 30,
-                                height: 30,
-                                color: const Color(0xFFB51A1A),
-                                shape: const CircleBorder(),
-                                child: const Icon(
-                                  Icons.cancel_rounded,
-                                  size: 22,
-                                  color: Color(0xA0FFFFFF),
-                                ),
-                                onPressed: () => setState(() {
-                                  agregar = true;
-                                  remove = false;
-                                }),
-                              )
-                            : const SizedBox(),
-                        remove
-                            ? Form(
+                          AnimatedSize(
+                            duration: const Duration(milliseconds: 400),
+                            child: SizedBox(
+                              height: agregar ? 0 : height,
+                              child: Form(
                                 key: formArticuloKey,
                                 child: Column(
                                   children: [
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        InputsForm(
-                                            margin: const EdgeInsets.only(
-                                                left: 8, top: 2, right: 5),
-                                            inputController: nombreController,
-                                            inputType: TextInputType.name,
-                                            hint: 'Nombre',
-                                            validator: 'Ingrese nombre.',
-                                            inputFormatters: const []),
-                                        InputsForm(
-                                            margin: const EdgeInsets.only(
-                                                left: 5, top: 2, right: 8),
-                                            inputController: precioController,
-                                            inputType: TextInputType.number,
-                                            hint: 'Precio',
-                                            validator: 'Ingrese precio.',
-                                            inputFormatters: [
-                                              MoneyInputFormatter()
-                                            ]),
+                                        const SizedBox(width: 10),
+                                        dropdownArticulo,
+                                        const SizedBox(width: 8),
+                                        dropdownUnidad,
+                                        const SizedBox(width: 10),
                                       ],
                                     ),
+                                    const SizedBox(height: 8),
                                     Row(
                                       mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                          MainAxisAlignment.center,
                                       children: [
-                                        InputsForm(
-                                            margin: const EdgeInsets.only(
-                                                left: 8, top: 10, right: 5),
-                                            inputController: cantidadController,
-                                            inputType: TextInputType.number,
-                                            hint: 'Cantidad',
-                                            validator: 'Ingrese cantidad.',
-                                            inputFormatters: const []),
-                                        dropdownUnidad
+                                        buttonCantidad,
+                                        const SizedBox(width: 16),
+                                        actualizar
+                                            ? buttonActualizar()
+                                            : buttonAgregar(),
                                       ],
                                     ),
-                                    actualizar
-                                        ? buttonActualizar()
-                                        : buttonAgregar(),
+                                    const SizedBox(height: 8),
                                   ],
                                 ),
-                              )
-                            : const SizedBox(),
-                        Flexible(
-                          child: listarArticulos(),
-                        ),
-                        Center(
-                          heightFactor: 2.3,
-                          child: textLabel('TOTAL: S/ ${getTotal()}', 17,
-                              Colors.greenAccent),
-                        ),
-                      ],
+                              ),
+                            ),
+                          ),
+                          Flexible(child: listarArticulos()),
+                          const SizedBox(height: 10),
+                          textLabel(
+                              'TOTAL: S/ ${getTotal()}', 17, Colors.cyanAccent),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -203,72 +163,85 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
 
   Widget buttonAgregar() {
     return Container(
-      width: 110,
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            shape: const StadiumBorder(),
-            elevation: 5),
+      width: 120,
+      height: 38,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.bottomLeft,
+          radius: 3.5,
+          colors: <Color>[
+            Color(0xFFAE31E7),
+            Color(0xFF204BFC),
+            Color(0xFF0190F9),
+          ],
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+      ),
+      child: MaterialButton(
+        shape: const StadiumBorder(),
         onPressed: () => setState(() => submitAgregar()),
-        child: const Text('AGREGAR'),
+        child: textLabel('AGREGAR', null, Colors.white),
       ),
     );
   }
 
   Widget buttonActualizar() {
     return Container(
-      width: 120,
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      child: ElevatedButton(
-        style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.indigo,
-            shape: const StadiumBorder(),
-            elevation: 5),
+      width: 135,
+      height: 38,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.bottomLeft,
+          radius: 3.5,
+          colors: <Color>[
+            Color(0xFFAE31E7),
+            Color(0xFF204BFC),
+            Color(0xFF0190F9),
+          ],
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+      ),
+      child: MaterialButton(
+        shape: const StadiumBorder(),
         onPressed: () => setState(() => submitActualizar()),
-        child: const Text('ACTUALIZAR'),
+        child: textLabel('ACTUALIZAR', null, Colors.white),
       ),
     );
   }
 
   void submitAgregar() {
+    height = 118;
     if (formArticuloKey.currentState!.validate()) {
-      List<int> listaCodArticulo = <int>[];
+      Detalle newDetalle = Detalle(
+          codArticulo: dropdownArticulo.articulo!.codigo!,
+          unidad: dropdownUnidad.value!,
+          cantidad: buttonCantidad.cantidad);
       Articulo newArticulo = Articulo(
-        nombre: nombreController.text,
-        precio: double.parse(precioController.text),
-        cantidad: int.parse(cantidadController.text),
-        unidad: dropdownUnidad.itemUnidad!,
-      );
-      widget.listaArticulos.add(newArticulo);
-      articuloDao.insertarArticulo(
-          widget.listaArticulos.elementAt(widget.listaArticulos.length - 1));
-      getLastCodigo();
-      listaCodArticulo.add(codArticulo);
-      detalleDao.insertDetalle(widget.lista.codigo!, listaCodArticulo);
+          nombre: dropdownArticulo.articulo!.nombre,
+          precio: dropdownArticulo.articulo!.precio);
+      widget.listaDetalle.add({newDetalle: newArticulo});
+      detalleDao.insertDetalle(widget.lista.codigo!, newDetalle);
       listaDao.modificarLista(getLista());
-      listaKey.currentState!.insertItem(widget.listaArticulos.length - 1);
-      FocusScope.of(context).unfocus();
-      limpiarTexto();
+      listaKey.currentState!.insertItem(widget.listaDetalle.length - 1,
+          duration: const Duration(milliseconds: 800));
+      limpiarForm();
     }
   }
 
   void submitActualizar() {
+    height = 96;
     if (formArticuloKey.currentState!.validate()) {
-      widget.listaArticulos.elementAt(position).nombre = nombreController.text;
-      widget.listaArticulos.elementAt(position).precio =
-          double.parse(precioController.text);
-      widget.listaArticulos.elementAt(position).cantidad =
-          int.parse(cantidadController.text);
-      widget.listaArticulos.elementAt(position).unidad =
-          dropdownUnidad.itemUnidad!;
-      articuloDao.modificarArticulo(widget.listaArticulos.elementAt(position));
+      detalle.codArticulo = dropdownArticulo.articulo!.codigo!;
+      articulo.nombre = dropdownArticulo.value!;
+      detalle.unidad = dropdownUnidad.value!;
+      detalle.cantidad = buttonCantidad.cantidad;
+      detalleDao.modificarDetalle(detalle);
       listaDao.modificarLista(getLista());
       listaKey.currentState!
           .removeItem(position, (context, animation) => const SizedBox());
-      listaKey.currentState!.insertItem(position);
-      agregar = true;
-      remove = false;
+      listaKey.currentState!
+          .insertItem(position, duration: const Duration(milliseconds: 800));
+      limpiarForm();
     }
   }
 
@@ -276,121 +249,156 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
     return Lista(
         codigo: widget.lista.codigo,
         titulo: widget.lista.titulo,
-        cantidad: widget.listaArticulos.length,
+        cantidad: widget.listaDetalle.length,
         total: getTotal(),
         estado: 0);
   }
 
   double getTotal() {
-    double monto = 0;
-    for (var element in widget.listaArticulos) {
-      monto += element.precio * element.cantidad;
+    double total = 0;
+    for (var element in widget.listaDetalle) {
+      total += element.values.first.precio * element.keys.first.cantidad;
     }
-    return monto;
+    return total;
   }
 
-  void limpiarTexto() {
-    nombreController.text = '';
-    precioController.text = '';
-    cantidadController.text = '';
-    dropdownUnidad = DropdownUnidad(itemUnidad: null);
+  void limpiarForm() {
+    agregar = true;
+    dropdownArticulo =
+        DropdownBuild(search: true, flex: 6, width: 215, height: 390);
+    dropdownUnidad =
+        DropdownBuild(search: false, flex: 3, width: 100, height: 195);
+    buttonCantidad = ButtonCantidad(cantidad: 1);
   }
 
   Widget listarArticulos() {
-    return AnimatedList(
-      key: listaKey,
-      shrinkWrap: true,
-      initialItemCount: widget.listaArticulos.length,
-      itemBuilder: (context, index, animation) => BuildLista(
-        onTap: false,
-        animation: animation,
-        widget: dismissible(context, index),
+    return FlipInY(
+      duration: const Duration(milliseconds: 700),
+      child: AnimatedList(
+        key: listaKey,
+        shrinkWrap: true,
+        initialItemCount: widget.listaDetalle.length,
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        itemBuilder: (context, index, animation) => ListviewBuild(
+            onTap: false,
+            animation: animation,
+            widget: dismissible(context, index)),
       ),
     );
   }
 
   Widget dismissible(BuildContext context, int index) {
-    String nombre = widget.listaArticulos.elementAt(index).nombre;
-    double precio = widget.listaArticulos.elementAt(index).precio;
-    int cantidad = widget.listaArticulos.elementAt(index).cantidad;
-    String unidad = widget.listaArticulos.elementAt(index).unidad;
-    Articulo itemBorrado;
+    String nombre = widget.listaDetalle.elementAt(index).values.first.nombre;
+    double precio = widget.listaDetalle.elementAt(index).values.first.precio;
+    String unidad = widget.listaDetalle.elementAt(index).keys.first.unidad;
+    int cantidad = widget.listaDetalle.elementAt(index).keys.first.cantidad;
+    double monto = precio * cantidad;
+    Map<Detalle, Articulo> itemBorrado;
 
     return Dismissible(
       key: UniqueKey(),
       resizeDuration: const Duration(microseconds: 1),
-      background: BackgroundDismissible(
+      background: DismissibleBackground(
           Colors.greenAccent.shade700, Alignment.centerLeft, 'EDITAR'),
-      secondaryBackground: const BackgroundDismissible(
+      secondaryBackground: const DismissibleBackground(
           Colors.red, Alignment.centerRight, 'ELIMINAR'),
       onDismissed: (direction) => setState(() {
-        if (widget.listaArticulos.length > 1) {
-          if (direction == DismissDirection.endToStart) {
-            agregar = true;
-            remove = false;
-            actualizar = false;
-            itemBorrado = widget.listaArticulos.elementAt(index);
-            widget.listaArticulos.removeAt(index);
-            articuloDao.eliminarArticulo(itemBorrado.codigo!);
+        if (identical(direction, DismissDirection.endToStart)) {
+          if (widget.listaDetalle.length > 1) {
+            itemBorrado = widget.listaDetalle.elementAt(index);
+            widget.listaDetalle.removeAt(index);
+            detalleDao.eliminarDetalle(itemBorrado.keys.first.codigo!);
             listaDao.modificarLista(getLista());
             listaKey.currentState!.removeItem(
-              index,
-              (context, animation) => BuildLista(
-                onTap: false,
-                animation: animation,
-                widget: dismissible(context, 0),
-              ),
-            );
+                index,
+                (context, animation) => ListviewBuild(
+                    onTap: false,
+                    animation: animation,
+                    widget: dismissible(context, 0)),
+                duration: const Duration(milliseconds: 600));
             showSnackBar(context, itemBorrado, index);
+            limpiarForm();
           } else {
-            position = index;
-            agregar = false;
-            remove = true;
-            actualizar = true;
-            nombreController.text = nombre;
-            precioController.text = precio.toString();
-            cantidadController.text = cantidad.toString();
-            dropdownUnidad = DropdownUnidad(itemUnidad: unidad);
-            listaKey.currentState!
-                .removeItem(index, (context, animation) => const SizedBox());
-            listaKey.currentState!.insertItem(index);
+            //AlertDialog para confitmar borrar.
           }
         } else {
-          //AlertDialog para confitmar borrar.
+          position = index;
+          agregar = false;
+          actualizar = true;
+          detalle = widget.listaDetalle.elementAt(index).keys.first;
+          articulo = widget.listaDetalle.elementAt(index).values.first;
+          dropdownArticulo = DropdownBuild(
+              search: true,
+              flex: 6,
+              width: 215,
+              height: 390,
+              value: articulo.nombre,
+              articulo: articulo);
+          dropdownUnidad = DropdownBuild(
+              search: false, flex: 3, width: 100, height: 195, value: unidad);
+          buttonCantidad = ButtonCantidad(cantidad: cantidad);
+          listaKey.currentState!
+              .removeItem(index, (context, animation) => const SizedBox());
+          listaKey.currentState!
+              .insertItem(index, duration: const Duration(milliseconds: 800));
         }
       }),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
+      child: Row(
+        children: [
+          Container(
+            padding:
+                const EdgeInsets.only(left: 15, top: 17, right: 18, bottom: 17),
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.bottomLeft,
+                radius: 1.8,
+                colors: <Color>[
+                  Color(0xFF120F5C),
+                  Color(0xFF130E9D),
+                  Color(0xFF420F74),
+                ],
+              ),
+              borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(30),
+                  bottomLeft: Radius.circular(10),
+                  bottomRight: Radius.circular(30)),
+            ),
+            child: textLabel(cantidad.toString(), 20, Colors.amber.shade600),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                textLabel('$cantidad $unidad $nombre', null, Colors.white),
-                const SizedBox(height: 6),
-                textLabel('S/ $precio', null, Colors.greenAccent),
+                textLabel('$unidad $nombre', 17, Colors.white),
+                const SizedBox(height: 4),
+                textLabel('S/ $precio', 15, Colors.greenAccent.shade400),
               ],
             ),
-            textLabel('S/ ${precio * cantidad}', null, Colors.white)
-          ],
-        ),
+          ),
+          textLabel('S/ $monto', 17, Colors.greenAccent.shade400),
+          const SizedBox(width: 15)
+        ],
       ),
     );
   }
 
-  void showSnackBar(BuildContext context, Articulo itemBorrado, int index) {
+  void showSnackBar(
+      BuildContext context, Map<Detalle, Articulo> itemBorrado, int index) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(itemBorrado.nombre),
+        content: Text(itemBorrado.values.first.nombre),
         duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Deshacer',
           onPressed: () => setState(() {
-            widget.listaArticulos.insert(index, itemBorrado);
-            articuloDao.insertarArticulo(itemBorrado);
+            widget.listaDetalle.insert(index, itemBorrado);
+            detalleDao.insertDetalle(
+                widget.lista.codigo!, itemBorrado.keys.first);
             listaDao.modificarLista(getLista());
-            listaKey.currentState!.insertItem(index);
+            listaKey.currentState!
+                .insertItem(index, duration: const Duration(milliseconds: 800));
           }),
         ),
       ),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
-class BackgroundDismissible extends StatelessWidget {
+class DismissibleBackground extends StatelessWidget {
   final Color color;
   final Alignment alignment;
   final String texto;
 
-  const BackgroundDismissible(this.color, this.alignment, this.texto, {super.key});
+  const DismissibleBackground(this.color, this.alignment, this.texto, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +13,7 @@ class BackgroundDismissible extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 15),
       alignment: alignment,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(10),
         color: color,
       ),
       child: Text(
