@@ -79,7 +79,7 @@ class _DropdownBuildState extends State<DropdownBuild> {
                 .toList()
             : [
                 const DropdownMenuItem<String>(
-                    value: 'Sin artículo',
+                    value: '',
                     child: Center(
                         child: Text('Sin artículos para mostrar.',
                             style: TextStyle(fontSize: 15))))
@@ -126,35 +126,30 @@ class _DropdownBuildState extends State<DropdownBuild> {
                     ),
                     const SizedBox(width: 10, height: 57),
                     InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Ink(
-                        decoration: const BoxDecoration(
-                            gradient: RadialGradient(
-                              center: Alignment.bottomLeft,
-                              radius: 3.5,
-                              colors: <Color>[
-                                Color(0xFFAE31E7),
-                                Color(0xFF204BFC),
-                                Color(0xFF0190F9),
-                              ],
-                            ),
-                            shape: BoxShape.circle),
-                        child: Container(
-                          padding: const EdgeInsets.all(4.5),
-                          child: Icon(Icons.add_circle_rounded,
-                              size: 23, color: Colors.grey.shade400),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Ink(
+                          decoration: const BoxDecoration(
+                              gradient: RadialGradient(
+                                center: Alignment.bottomLeft,
+                                radius: 3.5,
+                                colors: <Color>[
+                                  Color(0xFFAE31E7),
+                                  Color(0xFF204BFC),
+                                  Color(0xFF0190F9),
+                                ],
+                              ),
+                              shape: BoxShape.circle),
+                          child: Container(
+                            padding: const EdgeInsets.all(4.5),
+                            child: Icon(Icons.add_circle_rounded,
+                                size: 23, color: Colors.grey.shade400),
+                          ),
                         ),
-                      ),
-                      onTap: () => setState(() {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).pop();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => HomePage(index: 2)),
-                        );
-                      }),
-                    ),
+                        onTap: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    const HomePage(index: 2)))),
                     const SizedBox(width: 10, height: 57),
                   ],
                 )
@@ -164,7 +159,7 @@ class _DropdownBuildState extends State<DropdownBuild> {
         ),
         onMenuStateChange: (isOpen) => isOpen ? nombreController.clear() : null,
         onChanged: (value) => setState(() => widget.value = value),
-        validator: (value) => identical(value, null)
+        validator: (value) => identical(value, null) || identical(value, '')
             ? widget.search
                 ? '    Seleccione artículo.'
                 : '    Seleccione unidad.'

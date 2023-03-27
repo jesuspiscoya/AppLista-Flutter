@@ -13,6 +13,7 @@ class ListasPage extends StatefulWidget {
 
 class _ListasPageState extends State<ListasPage> {
   final GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
+  late String cantidad;
 
   @override
   Widget build(BuildContext context) {
@@ -58,12 +59,19 @@ class _ListasPageState extends State<ListasPage> {
   }
 
   Widget listaCard(Lista lista) {
-    late String cantidad;
     lista.cantidad > 1 ? cantidad = 'Artículos' : cantidad = 'Artículo';
 
     return Row(
       children: [
-        const SizedBox(width: 15, height: 56),
+        const SizedBox(width: 8, height: 56),
+        MaterialButton(
+            minWidth: 0,
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+            child: const Icon(Icons.check_circle_outline_rounded,
+                color: Colors.greenAccent, size: 40),
+            onPressed: () => true),
+        const SizedBox(width: 5),
         Expanded(child: textLabel(lista.titulo, 17, Colors.white)),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -73,7 +81,7 @@ class _ListasPageState extends State<ListasPage> {
             textLabel('Total: S/ ${lista.total}', null, Colors.greenAccent)
           ],
         ),
-        const SizedBox(width: 15, height: 56)
+        const SizedBox(width: 15, height: 56),
       ],
     );
   }

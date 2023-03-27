@@ -12,9 +12,9 @@ import 'package:lista_app/widgets/listview_build.dart';
 
 class AlertdialogLista extends StatefulWidget {
   final Lista lista;
-  final List<Map<Detalle, Articulo>> listaDetalle;
+  List<Map<Detalle, Articulo>> listaDetalle;
 
-  const AlertdialogLista({
+  AlertdialogLista({
     super.key,
     required this.lista,
     required this.listaDetalle,
@@ -28,8 +28,8 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
   final GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
   final GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
   bool agregar = true, actualizar = false;
-  DropdownBuild dropdownArticulo = DropdownBuild(search: true, flex: 6);
-  DropdownBuild dropdownUnidad = DropdownBuild(search: false, flex: 3);
+  DropdownBuild dropdownArticulo = DropdownBuild(search: true, flex: 3);
+  DropdownBuild dropdownUnidad = DropdownBuild(search: false, flex: 2);
   ButtonCantidad buttonCantidad = ButtonCantidad(cantidad: 1);
   late Detalle detalle;
   late Articulo articulo;
@@ -37,6 +37,13 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
   late int position;
   final ListaDao listaDao = ListaDao();
   final DetalleDao detalleDao = DetalleDao();
+
+  void getDetalle() async {
+    final data = await detalleDao.listarDetalle(widget.lista.codigo!);
+    setState(() {
+      widget.listaDetalle = data;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,16 +64,17 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
                     shape: const RoundedRectangleBorder(
                         borderRadius: BorderRadius.all(Radius.circular(15))),
                     insetPadding: const EdgeInsets.symmetric(
-                        horizontal: 25, vertical: 85),
+                        horizontal: 20, vertical: 85),
                     title: Center(
                         child: textLabel(widget.lista.titulo, 19, Colors.cyan)),
-                    titlePadding: const EdgeInsets.symmetric(vertical: 12),
+                    titlePadding: const EdgeInsets.only(top: 12),
                     contentPadding: EdgeInsets.zero,
                     content: SizedBox(
                       width: MediaQuery.of(context).size.width,
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const SizedBox(height: 8),
                           agregar
                               ? MaterialButton(
                                   minWidth: 0,
@@ -223,6 +231,7 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
       listaKey.currentState!.insertItem(widget.listaDetalle.length - 1,
           duration: const Duration(milliseconds: 800));
       limpiarForm();
+      getDetalle();
     }
   }
 
@@ -300,8 +309,8 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
           Colors.red, Alignment.centerRight, 'ELIMINAR'),
       onDismissed: (direction) => setState(() {
         if (identical(direction, DismissDirection.endToStart)) {
+          itemBorrado = widget.listaDetalle.elementAt(index);
           if (widget.listaDetalle.length > 1) {
-            itemBorrado = widget.listaDetalle.elementAt(index);
             widget.listaDetalle.removeAt(index);
             detalleDao.eliminarDetalle(itemBorrado.keys.first.codigo!);
             listaDao.modificarLista(getLista());
@@ -315,7 +324,34 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
             showSnackBar(context, itemBorrado, index);
             limpiarForm();
           } else {
-            //AlertDialog para confitmar borrar.
+            showDialog(
+                context: context,
+                builder: (context) => ZoomIn(
+                      duration: const Duration(milliseconds: 200),
+                      child: AlertDialog(
+                        backgroundColor: const Color(0xFF2C0E5E),
+                        shape: const RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(15))),
+                        insetPadding: EdgeInsets.zero,
+                        title: Center(
+                            child: textLabel('ELIMINAR', 19, Colors.cyan)),
+                        titlePadding: const EdgeInsets.symmetric(vertical: 18),
+                        contentPadding:
+                            const EdgeInsets.symmetric(horizontal: 25),
+                        content: Center(
+                          heightFactor: 1.5,
+                          child: textLabel(
+                              '¿Está seguro de eliminar ${widget.lista.titulo}?',
+                              15,
+                              Colors.white),
+                        ),
+                        actions: [buttonCancelar(), buttonAceptar(itemBorrado)],
+                        actionsPadding:
+                            const EdgeInsets.only(top: 35, bottom: 18),
+                        actionsAlignment: MainAxisAlignment.center,
+                      ),
+                    ));
           }
         } else {
           position = index;
@@ -370,6 +406,61 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
           textLabel('S/ $monto', 17, Colors.greenAccent.shade400),
           const SizedBox(width: 15)
         ],
+      ),
+    );
+  }
+
+  Widget buttonAceptar(Map<Detalle, Articulo> itemBorrado) {
+    return Container(
+      width: 100,
+      height: 33,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.bottomLeft,
+          radius: 3.5,
+          colors: <Color>[
+            Color(0xFFAE31E7),
+            Color(0xFF204BFC),
+            Color(0xFF0190F9),
+          ],
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Color(0xFFAE31E7), blurRadius: 5)],
+      ),
+      child: MaterialButton(
+        shape: const StadiumBorder(),
+        onPressed: () => setState(() {
+          detalleDao.eliminarDetalle(itemBorrado.keys.first.codigo!);
+          listaDao.eliminarLista(widget.lista.codigo!);
+          Navigator.of(context).pop();
+          Navigator.of(context).pop();
+        }),
+        child: textLabel('ACEPTAR', 13, Colors.tealAccent),
+      ),
+    );
+  }
+
+  Widget buttonCancelar() {
+    return Container(
+      width: 100,
+      height: 33,
+      decoration: const BoxDecoration(
+        gradient: RadialGradient(
+          center: Alignment.bottomLeft,
+          radius: 3.5,
+          colors: <Color>[
+            Color(0xFFAE31E7),
+            Color(0xFF204BFC),
+            Color(0xFF0190F9),
+          ],
+        ),
+        borderRadius: BorderRadius.all(Radius.circular(30)),
+        boxShadow: [BoxShadow(color: Color(0xFFAE31E7), blurRadius: 5)],
+      ),
+      child: MaterialButton(
+        shape: const StadiumBorder(),
+        onPressed: () => setState(() => Navigator.of(context).pop()),
+        child: textLabel('CANCELAR', 13, Colors.tealAccent),
       ),
     );
   }

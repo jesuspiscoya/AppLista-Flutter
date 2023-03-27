@@ -6,20 +6,27 @@ import 'package:lista_app/pages/listas_page.dart';
 import 'package:lista_app/pages/nuevo_page.dart';
 
 class HomePage extends StatefulWidget {
-  int? index = 0;
+  final int index;
 
-  HomePage({super.key, this.index});
+  const HomePage({super.key, required this.index});
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
+  late int index;
   final List<Widget> listaPages = [
     const NuevoPage(),
     const ListasPage(),
     const ArticulosPage(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    index = widget.index;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +44,7 @@ class _HomePageState extends State<HomePage> {
           color: const Color(0xFF090C1C),
           child: FadeIn(
               duration: const Duration(milliseconds: 500),
-              child: listaPages[widget.index!]),
+              child: listaPages[index]),
         ),
       ),
       bottomNavigationBar: Container(
@@ -48,7 +55,7 @@ class _HomePageState extends State<HomePage> {
             borderRadius: BorderRadius.all(Radius.circular(50))),
         child: GNav(
           gap: 8,
-          selectedIndex: widget.index!,
+          selectedIndex: index,
           color: Colors.white,
           activeColor: Colors.cyanAccent.shade200,
           rippleColor: Colors.indigo.shade700,
@@ -76,7 +83,7 @@ class _HomePageState extends State<HomePage> {
               text: 'Articulos',
             ),
           ],
-          onTabChange: (value) => setState(() => widget.index = value),
+          onTabChange: (value) => setState(() => index = value),
         ),
       ),
     );
