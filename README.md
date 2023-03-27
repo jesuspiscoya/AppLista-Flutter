@@ -1,6 +1,6 @@
 # lista_app
 
-ToDo App para Yadira.
+ToDo App para Android % iOS.
 
 ## Getting Started
 

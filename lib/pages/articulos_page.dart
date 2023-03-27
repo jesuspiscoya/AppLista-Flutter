@@ -186,6 +186,7 @@ class _ArticulosPageState extends State<ArticulosPage> {
     agregar = true;
     nombreController.clear();
     precioController.clear();
+    FocusScope.of(context).unfocus();
   }
 
   Widget listarArticulos() {

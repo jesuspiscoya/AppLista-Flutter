@@ -23,10 +23,9 @@ class _NuevoPageState extends State<NuevoPage> {
   final GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
   GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
   final TextEditingController tituloController = TextEditingController();
-  DropdownBuild dropdownUnidad =
-      DropdownBuild(search: false, flex: 2, width: 145, height: 195);
-  DropdownBuild dropdownArticulo =
-      DropdownBuild(search: true, flex: 3, width: 223, height: 390);
+  DropdownBuild dropdownArticulo = DropdownBuild(search: true, flex: 3);
+  DropdownBuild dropdownUnidad = DropdownBuild(search: false, flex: 2);
+
   List<Map<Detalle, Articulo>> listaArticulos = <Map<Detalle, Articulo>>[];
   bool visibleValidacion = false, actualizar = false;
   ButtonCantidad buttonCantidad = ButtonCantidad(cantidad: 1);
@@ -57,7 +56,6 @@ class _NuevoPageState extends State<NuevoPage> {
             child: Column(
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(width: 8),
@@ -71,6 +69,7 @@ class _NuevoPageState extends State<NuevoPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const SizedBox(width: 8),
                     buttonCantidad,
                     const SizedBox(width: 16),
                     actualizar ? buttonActualizar() : buttonAgregar()
@@ -239,10 +238,8 @@ class _NuevoPageState extends State<NuevoPage> {
   }
 
   void limpiarForm() {
-    dropdownArticulo =
-        DropdownBuild(search: true, flex: 3, width: 223, height: 390);
-    dropdownUnidad =
-        DropdownBuild(search: false, flex: 2, width: 145, height: 195);
+    dropdownArticulo = DropdownBuild(search: true, flex: 3);
+    dropdownUnidad = DropdownBuild(search: false, flex: 2);
     buttonCantidad = ButtonCantidad(cantidad: 1);
   }
 
@@ -301,14 +298,9 @@ class _NuevoPageState extends State<NuevoPage> {
         } else {
           position = index;
           actualizar = true;
-          dropdownArticulo = DropdownBuild(
-              search: true,
-              flex: 3,
-              width: 223,
-              height: 390,
-              value: articulo.nombre);
-          dropdownUnidad = DropdownBuild(
-              search: false, flex: 2, width: 145, height: 195, value: unidad);
+          dropdownArticulo =
+              DropdownBuild(search: true, flex: 3, value: articulo.nombre);
+          dropdownUnidad = DropdownBuild(search: false, flex: 2, value: unidad);
           buttonCantidad = ButtonCantidad(cantidad: detalle.cantidad);
           listaKey.currentState!
               .removeItem(index, (context, animation) => const SizedBox());

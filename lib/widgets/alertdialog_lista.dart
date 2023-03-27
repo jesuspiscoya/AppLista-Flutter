@@ -28,10 +28,8 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
   final GlobalKey<FormState> formArticuloKey = GlobalKey<FormState>();
   final GlobalKey<AnimatedListState> listaKey = GlobalKey<AnimatedListState>();
   bool agregar = true, actualizar = false;
-  DropdownBuild dropdownArticulo =
-      DropdownBuild(search: true, flex: 6, width: 215, height: 390);
-  DropdownBuild dropdownUnidad =
-      DropdownBuild(search: false, flex: 3, width: 100, height: 195);
+  DropdownBuild dropdownArticulo = DropdownBuild(search: true, flex: 6);
+  DropdownBuild dropdownUnidad = DropdownBuild(search: false, flex: 3);
   ButtonCantidad buttonCantidad = ButtonCantidad(cantidad: 1);
   late Detalle detalle;
   late Articulo articulo;
@@ -264,10 +262,8 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
 
   void limpiarForm() {
     agregar = true;
-    dropdownArticulo =
-        DropdownBuild(search: true, flex: 6, width: 215, height: 390);
-    dropdownUnidad =
-        DropdownBuild(search: false, flex: 3, width: 100, height: 195);
+    dropdownArticulo = DropdownBuild(search: true, flex: 6);
+    dropdownUnidad = DropdownBuild(search: false, flex: 3);
     buttonCantidad = ButtonCantidad(cantidad: 1);
   }
 
@@ -327,15 +323,9 @@ class _AlertdialogListaState extends State<AlertdialogLista> {
           actualizar = true;
           detalle = widget.listaDetalle.elementAt(index).keys.first;
           articulo = widget.listaDetalle.elementAt(index).values.first;
-          dropdownArticulo = DropdownBuild(
-              search: true,
-              flex: 6,
-              width: 215,
-              height: 390,
-              value: articulo.nombre,
-              articulo: articulo);
-          dropdownUnidad = DropdownBuild(
-              search: false, flex: 3, width: 100, height: 195, value: unidad);
+          dropdownArticulo =
+              DropdownBuild(search: true, flex: 6, value: articulo.nombre);
+          dropdownUnidad = DropdownBuild(search: false, flex: 3, value: unidad);
           buttonCantidad = ButtonCantidad(cantidad: cantidad);
           listaKey.currentState!
               .removeItem(index, (context, animation) => const SizedBox());

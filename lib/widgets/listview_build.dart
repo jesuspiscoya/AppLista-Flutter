@@ -1,4 +1,3 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:flutter/material.dart';
 import 'package:lista_app/model/lista.dart';
 import 'package:lista_app/services/detalle_dao.dart';
